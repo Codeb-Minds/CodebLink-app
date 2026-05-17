@@ -37,9 +37,8 @@ This mobile client is designed to overcome specific mobile operating system cons
 Follow these instructions to run and build the mobile client:
 
 ### 1. Install Dependencies
-Navigate to the mobile app directory and run:
+Install the required npm packages directly from the repository root:
 ```bash
-cd android-app
 npm install
 ```
 
