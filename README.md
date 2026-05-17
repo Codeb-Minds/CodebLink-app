@@ -1,50 +1,61 @@
-# Welcome to your Expo app 👋
+# Codeb Link — Mobile Companion (Android/React Native)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Codeb Link is the native Android companion client built to keep your mobile device in sync with your Linux desktop. Built on React Native, Expo, and Native Android Services, it provides background clipboard synchronization and file transfers.
 
-## Get started
+---
 
-1. Install dependencies
+## 🎯 Purpose & Problem Solver
 
-   ```bash
-   npm install
-   ```
+This mobile client is designed to overcome specific mobile operating system constraints:
 
-2. Start the app
+1. **Android Power Management & Service Sleep**: Modern Android OS strictly kills background JavaScript runners to preserve battery. Codeb Link utilizes native Android services (`ClipboardSyncService.kt` and `SyncTrampolineActivity.kt`) to process background sockets and clipboard changes even when the primary React Native thread is inactive.
+2. **Foreground/Background Transition Lag**: Shifts dynamically between active, low-latency WebSocket connections (when the dashboard is active) and background HTTP long-polling loops ("Ghost Channel") to save system resources and prevent false disconnects.
+3. **Decryption Overhead**: Ensures all clipboard payloads decrypted on the mobile client match client-side AES-256 standards, preventing network observers from accessing unencrypted clipboard transfers.
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## 🚀 Core Features
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Native Android Background Service**: Continuously listens to local system socket updates and writes back directly to the Android OS clipboard.
+- **Dynamic Port & Sync Connection**: Uses dynamic connection strings shared securely via dynamic QR Code scans.
+- **Security Key Reveal**: Integrated custom input field visibility controllers for managing the system synchronization key.
+- **System Telemetry Logs**: Displays instant, lightweight connection logs and pairing status indicators.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## 🛠️ Prerequisites & Requirements
 
-When you're ready, run:
+- **Android SDK**: Compilation of native Android background services requires the Android SDK configured.
+- **Local Wi-Fi Connection**: Desktop and mobile devices must operate on the same local network subnets to identify and connect to local sockets.
 
+---
+
+## ⚙️ Setup & Development
+
+Follow these instructions to run and build the mobile client:
+
+### 1. Install Dependencies
+Navigate to the mobile app directory and run:
 ```bash
-npm run reset-project
+cd android-app
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Start the Metro Developer Server
+Start the local server and Expo client:
+```bash
+npx expo start
+```
+*Press `a` to load the application directly on your connected Android device or active emulator.*
 
-## Learn more
+### 3. Generate Native Android Code
+Compile Expo build paths into raw Gradle and native Kotlin project resources:
+```bash
+npx expo prebuild
+```
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 4. Build Production APK
+Build the release bundle for Android distribution:
+```bash
+npx expo run:android --variant release
+```
