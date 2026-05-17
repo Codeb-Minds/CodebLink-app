@@ -2,6 +2,8 @@
 
 Codeb Link is the native Android companion client built to keep your mobile device in sync with your Linux desktop. Built on React Native, Expo, and Native Android Services, it provides background clipboard synchronization and file transfers.
 
+> 💻 **Desktop Client**: This companion app pairs with the Linux desktop application. The source code and instructions for the desktop client can be found at [CodebLink-linux](https://github.com/Codeb-Minds/CodebLink-linux).
+
 ---
 
 ## 🎯 Purpose & Problem Solver
