@@ -15,7 +15,7 @@ export default function Layout() {
 
   return (
     <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#111214' } }} />
       <StatusBar style="light" />
     </SafeAreaProvider>
   );

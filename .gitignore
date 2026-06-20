@@ -45,6 +45,10 @@ app-example
 /android/build
 /android/app/build
 /android/.gradle
+/android/.gradle_home
+/.gradle_home
+/android/.android
+/android/.npm
 /android/local.properties
 /android/*.iml
 /android/app/*.iml
