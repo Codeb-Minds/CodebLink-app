@@ -40,8 +40,16 @@ app-example
 
 # generated native folders
 /ios
-/android
 
+# specific Android build files to ignore
+/android/build
+/android/app/build
+/android/.gradle
+/android/local.properties
+/android/*.iml
+/android/app/*.iml
+/android/.idea
+/android/.cxx
 credentials.json
 credentials/
 *.jks

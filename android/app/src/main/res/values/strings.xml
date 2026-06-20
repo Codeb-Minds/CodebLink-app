@@ -1,0 +1,7 @@
+<resources>
+  <string name="app_name">Codeb Link</string>
+  <string name="accessibility_service_description">Codeb Link uses an accessibility service to keep clipboard sync running in the background. It does not read or interact with any on-screen content.</string>
+  <string name="expo_system_ui_user_interface_style" translatable="false">automatic</string>
+  <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
+  <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
+</resources>
