@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.codebminds.codeblink",
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": [
         "FOREGROUND_SERVICE",
         "WAKE_LOCK",

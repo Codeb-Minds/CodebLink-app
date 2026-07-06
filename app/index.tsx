@@ -393,44 +393,32 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const emitFileToPcWithAck = useCallback((payload: OutboundFilePayload): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const socket = socketRef.current;
-      if (!socket || !socket.connected) {
-        resolve(false);
-        return;
-      }
-      socket.timeout(15000).emit('file-received', payload, (err: unknown, response?: { ok?: boolean }) => {
-        if (err) {
-          resolve(false);
-          return;
-        }
-        resolve(Boolean(response?.ok));
-      });
-    });
-  }, []);
-
   const sendFileToPC = useCallback(async (fileUri: string, fileName?: string, mimeType?: string): Promise<boolean> => {
     if (!socketRef.current?.connected) return false;
     const resolvedName = fileName || fileUri.split('/').pop() || `shared_${Date.now()}`;
     try {
-      const base64Data = await ClipboardSyncBg?.readUriAsBase64?.(fileUri);
-      if (!base64Data) throw new Error('Unable to read shared file');
+      const serverIp = ipRef.current;
+      const secretKey = syncKeyRef.current;
+      const myMachineId = machineIdRef.current;
 
-      const payload: OutboundFilePayload = {
-        name: resolvedName,
-        type: mimeType || 'application/octet-stream',
-        data: base64Data,
-      };
+      const uploadResultStr = await ClipboardSyncBg?.uploadFileToPc?.(
+        fileUri,
+        serverIp,
+        resolvedName,
+        secretKey,
+        myMachineId
+      );
 
-      const delivered = await emitFileToPcWithAck(payload);
+      const uploadResult = uploadResultStr ? JSON.parse(uploadResultStr) : null;
+      const delivered = Boolean(uploadResult?.ok);
+
       ClipboardSyncBg?.notifyUploadDone?.(resolvedName, delivered);
       return delivered;
     } catch (err) {
       ClipboardSyncBg?.notifyUploadDone?.(resolvedName, false);
       return false;
     }
-  }, [emitFileToPcWithAck]);
+  }, []);
 
   const flushPendingShare = useCallback(async () => {
     const payload = pendingShareRef.current;

@@ -291,16 +291,77 @@ class ClipboardModule(private val reactContext: ReactApplicationContext) :
     @ReactMethod
     fun downloadFileFromUrl(url: String, name: String, mime: String, promise: Promise) {
         Thread {
+            var conn: HttpURLConnection? = null
+            var inputStream: InputStream? = null
             try {
-                val conn = URL(url).openConnection() as HttpURLConnection
+                conn = URL(url).openConnection() as HttpURLConnection
                 conn.connectTimeout = 15000
-                conn.readTimeout = 60000
-                val bytes = conn.inputStream.use { it.readBytes() }
-                conn.disconnect()
-                val savedUri = saveToDownloads(name, mime, bytes)
+                conn.readTimeout = 120000 // 2 minutes
+                inputStream = conn.inputStream
+                val savedUri = saveToDownloadsFromStream(name, mime, inputStream)
                 promise.resolve(savedUri)
             } catch (e: Exception) {
                 promise.reject("DOWNLOAD_ERROR", e.message)
+            } finally {
+                try { inputStream?.close() } catch (_: Exception) {}
+                try { conn?.disconnect() } catch (_: Exception) {}
+            }
+        }.start()
+    }
+
+    @ReactMethod
+    fun uploadFileToPc(uriString: String, pcIp: String, fileName: String, secretKey: String, machineId: String, promise: Promise) {
+        Thread {
+            var conn: HttpURLConnection? = null
+            var inputStream: InputStream? = null
+            var outputStream: OutputStream? = null
+            try {
+                val uri = Uri.parse(uriString)
+                inputStream = reactContext.contentResolver.openInputStream(uri)
+                    ?: throw IOException("Cannot open URI")
+
+                // Generate signature
+                val timestamp = System.currentTimeMillis()
+                val signaturePayload = JSONObject().apply {
+                    put("timestamp", timestamp)
+                    put("machineId", machineId)
+                }.toString()
+                val signature = ClipboardSyncService.encryptAes(signaturePayload, secretKey)
+
+                val encodedName = java.net.URLEncoder.encode(fileName, "UTF-8")
+                val url = URL("http://$pcIp:4321/api/upload?name=$encodedName")
+                conn = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    doOutput = true
+                    setChunkedStreamingMode(1024 * 64) // Enable streaming chunks to prevent memory buffering
+                    setRequestProperty("X-Signature", signature)
+                    setRequestProperty("Content-Type", "application/octet-stream")
+                    connectTimeout = 15000
+                    readTimeout = 120000 // 2 minutes
+                }
+
+                outputStream = conn.outputStream
+                val buffer = ByteArray(1024 * 64)
+                var bytesRead: Int
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    outputStream.write(buffer, 0, bytesRead)
+                }
+                outputStream.flush()
+
+                val responseCode = conn.responseCode
+                if (responseCode == 200) {
+                    val responseText = conn.inputStream.bufferedReader().use { it.readText() }
+                    promise.resolve(responseText)
+                } else {
+                    val errorText = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "HTTP $responseCode"
+                    promise.reject("UPLOAD_ERROR", errorText)
+                }
+            } catch (e: Exception) {
+                promise.reject("UPLOAD_ERROR", e.message)
+            } finally {
+                try { inputStream?.close() } catch (_: Exception) {}
+                try { outputStream?.close() } catch (_: Exception) {}
+                try { conn?.disconnect() } catch (_: Exception) {}
             }
         }.start()
     }
@@ -346,6 +407,10 @@ class ClipboardModule(private val reactContext: ReactApplicationContext) :
     private fun prefs() = reactContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     private fun saveToDownloads(name: String, mime: String, bytes: ByteArray): String {
+        return saveToDownloadsFromStream(name, mime, ByteArrayInputStream(bytes))
+    }
+
+    private fun saveToDownloadsFromStream(name: String, mime: String, inputStream: InputStream): String {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = android.content.ContentValues().apply {
                 put(android.provider.MediaStore.Downloads.DISPLAY_NAME, name)
@@ -355,7 +420,13 @@ class ClipboardModule(private val reactContext: ReactApplicationContext) :
             val uri = reactContext.contentResolver.insert(
                 android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values
             ) ?: throw IOException("Cannot create MediaStore entry")
-            reactContext.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+            reactContext.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                val buffer = ByteArray(1024 * 64)
+                var bytesRead: Int
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    outputStream.write(buffer, 0, bytesRead)
+                }
+            }
             values.clear()
             values.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
             reactContext.contentResolver.update(uri, values, null, null)
@@ -364,7 +435,13 @@ class ClipboardModule(private val reactContext: ReactApplicationContext) :
             val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
             downloadsDir.mkdirs()
             val file = File(downloadsDir, name)
-            file.writeBytes(bytes)
+            file.outputStream().use { outputStream ->
+                val buffer = ByteArray(1024 * 64)
+                var bytesRead: Int
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    outputStream.write(buffer, 0, bytesRead)
+                }
+            }
             file.absolutePath
         }
     }
